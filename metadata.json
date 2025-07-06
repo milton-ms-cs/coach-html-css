@@ -1,0 +1,8 @@
+{
+  "name": "HTML and CSS Helper",
+  "type": "helper",
+  "properties": {
+    "user_type": "all", 
+    "component": "all"
+  }
+}
