@@ -21,8 +21,7 @@
 
     const initialUserPrompt = `Here are the student's files:
 <files>
-${context.files.join('\n')}
-')}
+${context.files.map(f => `File: ${f.path}\n${f.content}`).join('\n\n')}
 </files>
 Here is the guide content:
 <guide>
