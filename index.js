@@ -21,7 +21,7 @@
 
     const initialUserPrompt = `Here are the student's files:
 <files>
-${context.files.join('
+${context.files.join('\n')}
 ')}
 </files>
 Here is the guide content:
