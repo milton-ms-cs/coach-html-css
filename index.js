@@ -38,13 +38,21 @@
 
     const initialInput = await codioIDE.coachBot.input("What can I help you with?");
 
+    const filesContent = (context.files && context.files.length > 0)
+      ? context.files.map(f => `File: ${f.path}\n${f.content}`).join('\n\n')
+      : "No files available.";
+
+    const guideContent = (context.guidesPage && context.guidesPage.content)
+      ? context.guidesPage.content
+      : "No guide available.";
+
     const initialUserPrompt = `Here are the student's files:
 <files>
-${context.files.map(f => `File: ${f.path}\n${f.content}`).join('\n\n')}
+${filesContent}
 </files>
 Here is the guide content:
 <guide>
-${context.guidesPage.content}
+${guideContent}
 </guide>
 
 The student says: ${initialInput}`;
