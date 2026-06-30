@@ -22,21 +22,36 @@
   - CSS not applying because of typos or wrong selectors
   - File paths for images or links
 
+  What you CAN do:
+  - Explain what a validation issue or error means in plain language.
+  - Point out specific problems (missing tags, typos, wrong selectors) and suggest fixes.
+  - Write small code snippets (3-5 lines) that show how a tag or CSS property works, with a brief explanation.
+  - Help them think through layout and styling step by step.
+
+  What you CANNOT do:
+  - Write a student's complete page or full CSS file for them.
+  - Do their homework for them. If they ask, say: "I can't build your page for you, but let's fix it together! What part are you stuck on?"
+  - Answer questions outside of course content.
+
   Keep your answers SHORT and SIMPLE - no more than 2-3 sentences unless they ask for more detail.
   You can generate small code snippets to help them, but explain what each part does.
   When you are asked for help, you will be provided with the student's code in the <files> tag and the content of the guides in the <guide> tag.
   `;
   
-  codioIDE.coachBot.register("htmlCssHelper", "HTML/CSS Helper", onButtonPress);
+  codioIDE.coachBot.register("htmlCssHelper", "HTML/CSS Coach", onButtonPress);
 
   async function onButtonPress() {
-    console.log("HTML/CSS Helper started");
     const context = await codioIDE.coachBot.getContext();
-    console.log("Context:", context);
-    
+
     let messages = [];
 
-    const initialInput = await codioIDE.coachBot.input("What can I help you with?");
+    let initialInput;
+    try {
+      initialInput = await codioIDE.coachBot.input("What can I help you with?");
+    } catch (e) {
+      codioIDE.coachBot.showMenu();
+      return;
+    }
 
     const filesContent = (context.files && context.files.length > 0)
       ? context.files.map(f => `File: ${f.path}\n${f.content}`).join('\n\n')
@@ -58,45 +73,56 @@ ${guideContent}
 The student says: ${initialInput}`;
 
     messages.push({
-        "role": "user", 
+        "role": "user",
         "content": initialUserPrompt
     });
 
-    console.log("Sending to LLM:", messages);
-    let result = await codioIDE.coachBot.ask({
-      systemPrompt: systemPrompt,
-      messages: messages
-    }, {preventMenu: true});
-    console.log("LLM Response:", result);
-
-    messages.push({"role": "assistant", "content": result.result});
-    
-    while (true) {
-      const input = await codioIDE.coachBot.input("What else can I help you with?");
-
-      const exitPhrases = ["thanks", "thank you", "bye", "done", "exit", "quit", "stop", "no thanks", "i'm good", "im good", "that's all", "thats all"];
-      if (exitPhrases.some(phrase => input.toLowerCase().includes(phrase))) {
-        break;
-      }
-      
-      messages.push({
-          "role": "user", 
-          "content": input
-      });
-  
-      console.log("Sending to LLM:", messages);
-      result = await codioIDE.coachBot.ask({
+    try {
+      const result = await codioIDE.coachBot.ask({
         systemPrompt: systemPrompt,
         messages: messages
       }, {preventMenu: true});
-      console.log("LLM Response:", result);
-
       messages.push({"role": "assistant", "content": result.result});
+    } catch (e) {
+      codioIDE.coachBot.write("Hmm, something went wrong on my end. Try asking that again!");
+      messages.pop();
+    }
 
-      // Keep conversation manageable while preserving the initial context with files and guide
+    const exitPhrases = ["thanks", "thank you", "bye", "done", "exit", "quit", "stop", "no thanks", "i'm good", "im good", "that's all", "thats all"];
+
+    while (true) {
+      let input;
+      try {
+        input = await codioIDE.coachBot.input("What else can I help you with? (Say 'thanks' when you're done!)");
+      } catch (e) {
+        break;
+      }
+
+      const trimmedInput = input.trim().toLowerCase();
+      if (exitPhrases.includes(trimmedInput)) {
+        break;
+      }
+
+      messages.push({
+          "role": "user",
+          "content": input
+      });
+
+      try {
+        const result = await codioIDE.coachBot.ask({
+          systemPrompt: systemPrompt,
+          messages: messages
+        }, {preventMenu: true});
+        messages.push({"role": "assistant", "content": result.result});
+      } catch (e) {
+        codioIDE.coachBot.write("Hmm, something went wrong on my end. Try asking that again!");
+        messages.pop();
+        continue;
+      }
+
       // Keep first message (which has files + guide) + last 8 messages (4 exchanges)
-      if (messages.length > 9) {
-        messages = [messages[0], ...messages.slice(-8)];
+      while (messages.length > 9) {
+        messages.splice(1, 2); // drop the oldest assistant+user pair, keep messages[0] (context) intact
       }
     }
     
