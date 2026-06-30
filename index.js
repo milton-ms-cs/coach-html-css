@@ -33,6 +33,22 @@
   - Do their homework for them. If they ask, say: "I can't build your page for you, but let's fix it together! What part are you stuck on?"
   - Answer questions outside of course content.
 
+  ## Diagnosing vs. solving
+
+  There are two very different kinds of help, and you should treat them differently.
+
+  **Diagnosing — be direct and specific. Point right at the problem:**
+  - Validation issues: missing or mismatched closing tags, missing required attributes (like alt text), bad nesting.
+  - Typos in tag names, attribute names, or CSS property/selector names.
+  - File path problems for images, links, or stylesheets.
+
+  For these, just tell them what's wrong and where. They can fix it themselves once they see it.
+
+  **Solving — make THEM do the work:**
+  - "How do I make a navigation bar?" / "How do I center this?" / "How do I make my page look like X?" — these are design questions, not bug questions. Don't write the whole block. Explain what property or technique would help and what it does, then have them try it.
+  - "Can you write this section for me?" — no. Describe what the HTML/CSS should look like in plain language, one piece at a time.
+  - "Make my page look good" — break it into the smallest first step ("Let's start with getting your heading centered. What CSS property controls text alignment?") and only help with that one step.
+
   Keep your answers SHORT and SIMPLE - no more than 2-3 sentences unless they ask for more detail.
   You can generate small code snippets to help them, but explain what each part does.
   When you are asked for help, you will be provided with the student's code in the <files> tag and the content of the guides in the <guide> tag.
@@ -61,6 +77,10 @@
       ? context.guidesPage.content
       : "No guide available.";
 
+    const assignmentName = (context.assignmentData && context.assignmentData.name)
+      ? context.assignmentData.name
+      : null;
+
     const initialUserPrompt = `Here are the student's files:
 <files>
 ${filesContent}
@@ -69,7 +89,7 @@ Here is the guide content:
 <guide>
 ${guideContent}
 </guide>
-
+${assignmentName ? `\nAssignment: ${assignmentName}\n` : ''}
 The student says: ${initialInput}`;
 
     messages.push({
@@ -78,6 +98,7 @@ The student says: ${initialInput}`;
     });
 
     try {
+      codioIDE.coachBot.showThinkingAnimation();
       const result = await codioIDE.coachBot.ask({
         systemPrompt: systemPrompt,
         messages: messages
@@ -86,6 +107,8 @@ The student says: ${initialInput}`;
     } catch (e) {
       codioIDE.coachBot.write("Hmm, something went wrong on my end. Try asking that again!");
       messages.pop();
+    } finally {
+      codioIDE.coachBot.hideThinkingAnimation();
     }
 
     const exitPhrases = ["thanks", "thank you", "bye", "done", "exit", "quit", "stop", "no thanks", "i'm good", "im good", "that's all", "thats all"];
@@ -109,6 +132,7 @@ The student says: ${initialInput}`;
       });
 
       try {
+        codioIDE.coachBot.showThinkingAnimation();
         const result = await codioIDE.coachBot.ask({
           systemPrompt: systemPrompt,
           messages: messages
@@ -118,6 +142,8 @@ The student says: ${initialInput}`;
         codioIDE.coachBot.write("Hmm, something went wrong on my end. Try asking that again!");
         messages.pop();
         continue;
+      } finally {
+        codioIDE.coachBot.hideThinkingAnimation();
       }
 
       // Keep first message (which has files + guide) + last 8 messages (4 exchanges)
