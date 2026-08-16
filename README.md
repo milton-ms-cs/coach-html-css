@@ -1,16 +1,13 @@
-# HTML/CSS Helper Coach Bot
+# html-css-helper
 
-This is a Codio Coach Bot designed to help middle school students with HTML and CSS. It can identify issues in their code, provide explanations, and generate code snippets.
+Codio Custom Assistant ("HTML/CSS Coach") for 7th grade students learning HTML and CSS at Milton Academy.
 
-## Development History
+A single `index.js` + `metadata.json`, no build step. On every question it reads the student's open editor files **plus all project `.html`/`.css` files** via `codioIDE.files` — cross-file questions ("why isn't my CSS applying?") need both files visible even when only one is open — along with the assignment guide. Uses visual, kid-friendly language and a diagnose-vs-solve Socratic split: direct fixes for validation issues and typos, guided questions for design asks, never a complete page.
 
-1.  **Initial Creation:** The Coach Bot was first created with a basic structure, including `metadata.json` and `index.js` files.
-2.  **Multi-turn Conversation:** The `index.js` file was modified to support multi-turn conversations, allowing students to ask follow-up questions.
-3.  **Logging:** `console.log` statements were added to `index.js` to facilitate debugging within the Codio environment.
-4.  **GitHub Repository:** A GitHub repository was created at `https://github.com/bsitkoff/html-css-helper` to house the code.
-5.  **Initial Commit:** The initial version of the code was committed and pushed to the `main` branch of the repository.
-6.  **Release:** A `v1.0.0` release was created on GitHub to allow for installation in Codio.
+## Development
 
-## Next Steps
+```bash
+node --check index.js
+```
 
-To use this Coach Bot, add the repository URL (`https://github.com/bsitkoff/html-css-helper`) to your Codio organization's settings. Then, you can test it in a Codio project and view the logs in your browser's developer console.
+See the parent `coaches/CLAUDE.md` for the shared coach architecture and API quirks. Deployment: bump `VERSION` in `index.js`, commit, then run `../publish_coaches.sh --publish` from the parent folder and Check for Updates in Codio (this repo's release tags are unprefixed, e.g. `2.4.0` — the script handles that). Typing `version` at any coach prompt confirms the release propagated.
