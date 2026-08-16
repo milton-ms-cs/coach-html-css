@@ -56,6 +56,76 @@
   
   codioIDE.coachBot.register("htmlCssHelper", "HTML/CSS Coach", onButtonPress);
 
+  // Collect .html/.css files via codioIDE.files — context.files only lists
+  // files currently OPEN in the editor, and students often ask about their CSS
+  // while only the HTML file is open (or the other way around).
+  // codioIDE.workspace does NOT exist in the Custom Assistant runtime;
+  // codioIDE.files is the supported channel:
+  // https://codio.github.io/client/codioIDE.files.html
+  async function collectProjectFiles(skipPaths) {
+    let out = "";
+    const totalBudget = 40000;
+    const F = codioIDE.files;
+    if (!F || typeof F.getStructure !== "function" || typeof F.getContent !== "function") return out;
+
+    let files = [];
+    try {
+      files = findProjectFiles(await F.getStructure(), "");
+    } catch (e) {
+      return out;
+    }
+
+    for (const filePath of files) {
+      if (out.length >= totalBudget) break;
+      if (skipPaths && skipPaths.has(normalizePath(filePath))) continue;
+
+      try {
+        const content = await F.getContent(filePath);
+        if (typeof content !== "string" || content.length === 0) continue;
+        const maxLen = Math.min(15000, totalBudget - out.length);
+
+        if (content.length <= maxLen) {
+          out += `File: ${filePath}\n${content}`;
+        } else {
+          out += `File: ${filePath} (truncated)\n${content.slice(0, maxLen)}\n...(truncated)`;
+        }
+        out += '\n\n';
+      } catch (e) {
+        // Silent — skip unreadable files
+      }
+    }
+
+    return out.trim();
+  }
+
+  function normalizePath(p) {
+    return String(p).replace(/^\.\//, "").replace(/^\//, "");
+  }
+
+  // getStructure() returns a name->value MAP: a file's value is a leaf (Codio
+  // uses 1), a directory's value is a nested map — not an array of nodes.
+  function findProjectFiles(node, path) {
+    let out = [];
+    if (!node || typeof node !== "object") return out;
+
+    for (const name in node) {
+      if (!Object.prototype.hasOwnProperty.call(node, name)) continue;
+      if (name.startsWith(".")) continue;
+      const full = path ? `${path}/${name}` : name;
+      const value = node[name];
+
+      if (value && typeof value === "object") {
+        out = out.concat(findProjectFiles(value, full));
+      } else {
+        const lower = name.toLowerCase();
+        if (lower.endsWith(".html") || lower.endsWith(".css")) {
+          out.push(full);
+        }
+      }
+    }
+    return out;
+  }
+
   async function onButtonPress() {
     const context = await codioIDE.coachBot.getContext();
 
@@ -69,9 +139,20 @@
       return;
     }
 
-    const filesContent = (context.files && context.files.length > 0)
+    // Open editor files first, then the rest of the project's .html/.css files
+    let filesContent = (context.files && context.files.length > 0)
       ? context.files.map(f => `File: ${f.path}\n${f.content}`).join('\n\n')
-      : "No files available.";
+      : "";
+
+    const openPaths = new Set((context.files || []).map(f => normalizePath(f.path)));
+    const projectFiles = await collectProjectFiles(openPaths);
+    if (projectFiles) {
+      filesContent += (filesContent ? '\n\n' : '') + projectFiles;
+    }
+
+    if (!filesContent) {
+      filesContent = "No files available.";
+    }
 
     const guideContent = (context.guidesPage && context.guidesPage.content)
       ? context.guidesPage.content
